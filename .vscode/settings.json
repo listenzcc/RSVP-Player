@@ -1,7 +1,10 @@
 {
     "cSpell.words": [
         "blit",
+        "imread",
+        "MOUSEBUTTONDOWN",
         "MOUSEBUTTONUP",
-        "pygame"
+        "pygame",
+        "surfarray"
     ]
 }

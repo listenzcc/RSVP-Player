@@ -1,20 +1,22 @@
+# %%
 from .logger import LOGGER
 from .loop_manager import LOOP_MANAGER
 from .constants import *
 
 
+# %%
 def draw_controllers():
-    width = 3
+    width = 1
     color = WHITE
     background = None
     antialias = True
 
     top = int(CFG['screen']['height']) / 10
-    _top = int(CFG['screen']['height']) / 10
+    _top = 20
     left = int(CFG['screen']['width']) / 2
 
     controllers = dict(
-        INTER=['__INTER__', -1],
+        CAPTURE=['__CAPTURE__', -1],
         RSVP=['__RSVP__', -1],
     )
 
@@ -24,7 +26,7 @@ def draw_controllers():
         rect = text.get_rect()
         rect.height *= 1.1
         rect.center = (left, top)
-        top += _top
+        top += _top + rect.height
 
         SCREEN.fill(BLACK, rect)
         SCREEN.blit(text, rect)
@@ -35,7 +37,9 @@ def draw_controllers():
     return controllers
 
 
+# %%
 def main_loop():
+    LOGGER.info('Main loop started')
     controllers = draw_controllers()
     while True:
         SCREEN.fill(BLACK)
@@ -43,6 +47,7 @@ def main_loop():
         pygame.display.flip()
 
         if not LOOP_MANAGER.get() == 'MAIN':
+            LOGGER.info('Escape from main loop')
             break
 
         for event in pygame.event.get():
@@ -53,3 +58,7 @@ def main_loop():
                 for cmd in controllers:
                     if controllers[cmd][1].contains(event.pos, (1, 1)):
                         LOGGER.info('Event: MouseButtonDown: {}'.format(cmd))
+                        if cmd == 'CAPTURE':
+                            LOOP_MANAGER.set('CAPTURE')
+
+# %%

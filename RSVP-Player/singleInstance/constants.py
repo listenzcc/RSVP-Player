@@ -1,12 +1,17 @@
-
+# %%
 import sys
 import pygame
 import configparser
 from pathlib import Path
 
+# %%
 CFG = configparser.ConfigParser()
 CFG.read(Path(__file__).parent.parent.joinpath('asset/config.ini'))
 
+# %%
+RATE = int(CFG['RSVP']['rate'])
+
+# %%
 MODE = tuple(int(e) for e in [CFG['screen']['width'],
                               CFG['screen']['height']])
 
@@ -14,10 +19,12 @@ CAPTION = CFG['UI']['caption']
 
 TIMEOUT = int(CFG['UI']['timeout'])
 
+RED = (200, 0, 0)
 WHITE = (200, 200, 200)
 BLACK = (0, 50, 10)
 GRAY = (100, 100, 100)
 
+# %%
 pygame.init()
 
 # pygame.font.get_fonts()
