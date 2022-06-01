@@ -19,6 +19,7 @@ CAPTION = CFG['UI']['caption']
 
 TIMEOUT = int(CFG['UI']['timeout'])
 
+YELLOW = (200, 200, 0)
 RED = (200, 0, 0)
 WHITE = (200, 200, 200)
 BLACK = (0, 50, 10)

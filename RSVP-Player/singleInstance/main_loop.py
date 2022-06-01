@@ -58,7 +58,7 @@ def main_loop():
             if event.type == pygame.MOUSEBUTTONUP:
                 for cmd in controllers:
                     if controllers[cmd][1].contains(event.pos, (1, 1)):
-                        LOGGER.info('Event: MouseButtonDown: {}'.format(cmd))
+                        LOGGER.info('Event: MouseButtonUp: {}'.format(cmd))
                         if cmd == 'CAPTURE':
                             LOOP_MANAGER.set('CAPTURE')
 

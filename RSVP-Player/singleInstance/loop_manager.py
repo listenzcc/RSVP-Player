@@ -7,7 +7,7 @@ states = dict(
     MAIN='Main loop',
     CAPTURE='Capture loop',
     RSVP='RSVP loop',
-    INTER='Interrupt loop',
+    INTER='Inter loop',
 )
 
 queue_limit = 100
@@ -22,13 +22,15 @@ class LoopManager(object):
 
     def set(self, state):
         if not state in self.states:
-            LOGGER.error('Invalid state: {}. Something is going very wrong'.format(state))
+            LOGGER.error(
+                'Invalid state: {}. Something is going very wrong'.format(state))
             return
 
         self.queue.insert(0, state)
         self.queue.pop()
 
-        LOGGER.info('LoopManager set state: {} from {}'.format(state, self.queue[1]))
+        LOGGER.info('LoopManager set state: {} from {}'.format(
+            state, self.queue[1]))
 
     def get(self):
         return self.queue[0]

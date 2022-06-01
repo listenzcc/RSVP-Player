@@ -1,7 +1,7 @@
 # %%
 import time
 
-from .toolbox import frame2surface, Pair
+from .toolbox import frame2surface, Controller, Pair
 
 from .buffer import NON_TARGET_BUFFER
 
@@ -71,37 +71,15 @@ def draw_frame_rate(error=''):
 # %%
 
 
-def draw_controllers():
-    width = 1
-    color = WHITE
-    background = None
-    antialias = True
+controllers = dict(
+    MAIN=['__MAIN__', -1],
+    RSVP=['__RSVP__', -1],
+    REC=['__REC__', -1],
+)
 
-    top = 30
-    left = int(CFG['screen']['width']) / 10
-    _left = 30
+# controllers = draw_controllers(controllers)
 
-    controllers = dict(
-        MAIN=['__MAIN__', -1],
-        RSVP=['__RSVP__', -1],
-        REC=['__REC__', -1]
-    )
-
-    for j, cmd in enumerate(controllers):
-        string = controllers[cmd][0]
-        text = FONT.render(string, antialias, color, background)
-        rect = text.get_rect()
-        rect.height *= 1.1
-        rect.center = (left, top)
-        left += _left + rect.width
-
-        SCREEN.fill(BLACK, rect)
-        SCREEN.blit(text, rect)
-        pygame.draw.rect(SCREEN, color, rect, width=width)
-
-        controllers[cmd][1] = rect
-
-    return controllers
+controller = Controller(controllers, 'Capture')
 
 # %%
 
@@ -151,10 +129,10 @@ def capture_loop():
     frame_rate_stats['count'] = 0
     frame_rate_stats['record'] = False
 
-    controllers = draw_controllers()
     while True:
         SCREEN.fill(BLACK)
-        draw_controllers()
+        # draw_controllers(controllers)
+        controller.draw()
 
         if not LOOP_MANAGER.get() == 'CAPTURE':
             LOGGER.info('Escape from capture loop')
@@ -164,21 +142,18 @@ def capture_loop():
             if event.type == pygame.QUIT:
                 QUIT_PYGAME()
 
-            if event.type == pygame.MOUSEBUTTONUP:
-                for cmd in controllers:
-                    # Received MOUSEBUTTONDOWN event on cmd
-                    if controllers[cmd][1].contains(event.pos, (1, 1)):
-                        LOGGER.info('Event: MouseButtonDown: {}'.format(cmd))
-                        if cmd == 'MAIN':
-                            LOOP_MANAGER.set('MAIN')
+            cmd = controller.check(event)
 
-                        if cmd == 'REC':
-                            frame_rate_stats['record'] = not frame_rate_stats['record']
-                            LOGGER.debug(
-                                'Frame rate stats changes: {}'.format(frame_rate_stats))
+            if cmd == 'MAIN':
+                LOOP_MANAGER.set('MAIN')
 
-                        if cmd == 'RSVP':
-                            LOOP_MANAGER.set('RSVP')
+            if cmd == 'REC':
+                frame_rate_stats['record'] = not frame_rate_stats['record']
+                LOGGER.debug(
+                    'Frame rate stats changes: {}'.format(frame_rate_stats))
+
+            if cmd == 'RSVP':
+                LOOP_MANAGER.set('RSVP')
 
         if (time.time() - frame_rate_stats['t0']) * RATE > frame_rate_stats['count']:
             frame_rate_stats['count'] += 1

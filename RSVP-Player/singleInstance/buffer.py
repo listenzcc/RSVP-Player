@@ -12,6 +12,9 @@ class RawBuffer(object):
         self.limit = CFG['buffer']['maxSize']
         self.pairs = []
 
+    def insert(self, pair):
+        self.pairs.insert(0, pair)
+
     def append(self, pair):
         self.pairs.append(pair)
 
@@ -107,9 +110,9 @@ SUSPECT_BUFFER = SuspectBuffer()
 # %%
 
 
-class InterruptBuffer(RawBuffer):
+class InterBuffer(RawBuffer):
     def __init__(self):
-        super(InterruptBuffer, self).__init__()
+        super(InterBuffer, self).__init__()
         LOGGER.info('InterruptBuffer initialized')
         pass
 
@@ -128,7 +131,7 @@ class InterruptBuffer(RawBuffer):
         return first
 
 
-INTERRUPT_BUFFER = InterruptBuffer()
+INTER_BUFFER = InterBuffer()
 
 
 # %%
@@ -137,7 +140,7 @@ INTERRUPT_BUFFER = InterruptBuffer()
 def summary_buffers():
     NON_TARGET_BUFFER.refresh()
     SUSPECT_BUFFER.refresh()
-    INTERRUPT_BUFFER.refresh()
+    INTER_BUFFER.refresh()
     output = [
         '| Summary           {:4s} {:4s} |'.format('', ''),
         '| Buffer Name     | {:4s}|{:4s} |'.format('frm', 'srf'),
@@ -148,7 +151,8 @@ def summary_buffers():
         '| SuspectBuffer   | {:4d}|{:4d} |'.format(
             SUSPECT_BUFFER.frame_count, SUSPECT_BUFFER.surface_count),
         # Interrupt buffer
-        '| InterruptBuffer | {:4d}|{:4d} |'.format(0, 0)
+        '| InterruptBuffer | {:4d}|{:4d} |'.format(
+            INTER_BUFFER.frame_count, INTER_BUFFER.surface_count),
     ]
 
     return output

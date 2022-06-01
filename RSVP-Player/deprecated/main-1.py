@@ -117,7 +117,7 @@ while True:
             for cmd in controllers:
                 print(cmd)
                 if controllers[cmd][1].contains(event.pos, (1, 1)):
-                    LOGGER.info('Event: MouseButtonDown: {}'.format(cmd))
+                    LOGGER.info('Event: MouseButtonUp: {}'.format(cmd))
                     if cmd == 'CLEAR':
                         clear_screen()
 

@@ -2,8 +2,11 @@
 import time
 import random
 
+from .toolbox import Controller
+
 from .buffer import SUSPECT_BUFFER
 from .buffer import NON_TARGET_BUFFER
+from .buffer import INTER_BUFFER
 
 from .buffer import summary_buffers
 
@@ -65,36 +68,13 @@ def draw_frame_rate():
 # %%
 
 
-def draw_controllers():
-    width = 1
-    color = WHITE
-    background = None
-    antialias = True
+controllers = dict(
+    MAIN=['__MAIN__', -1],
+    CAPTURE=['__CAPTURE__', -1],
+)
 
-    top = 30
-    left = int(CFG['screen']['width']) / 10
-    _left = 30
+controller = Controller(controllers, 'RSVP')
 
-    controllers = dict(
-        MAIN=['__MAIN__', -1],
-        CAPTURE=['__CAPTURE__', -1],
-    )
-
-    for j, cmd in enumerate(controllers):
-        string = controllers[cmd][0]
-        text = FONT.render(string, antialias, color, background)
-        rect = text.get_rect()
-        rect.height *= 1.1
-        rect.center = (left, top)
-        left += _left + rect.width
-
-        SCREEN.fill(BLACK, rect)
-        SCREEN.blit(text, rect)
-        pygame.draw.rect(SCREEN, color, rect, width=width)
-
-        controllers[cmd][1] = rect
-
-    return controllers
 
 # %%
 
@@ -139,31 +119,55 @@ if CFG['RSVP']['rate'] == '5':
     kk_min = 5
     kk_max = 15
 
+
 def mk_chunk():
-    # Randomly select non target surfaces with k times
-    # The kk-th surface will be replaced by the suspect surface
-    # The kk value will be set to -1 if there is not any suspect surface,
-    # to make sure the replacement will never happen
+    '''
+    Randomly select non target surfaces with k times
+    The kk-th surface will be replaced by the suspect surface
+    The kk value will be set to -1 if there is not any suspect surface,
+    to make sure the replacement will never happen
+    '''
     pairs = NON_TARGET_BUFFER.get_random(k=k)
     if pairs is None:
         frame_rate_stats['status'] = 'ERROR - no capture'
+        return None, None, None
 
+    kk = -1
+    suspect_pair = None
     if frame_rate_stats['status'] == 'RSVP':
         suspect_pair = SUSPECT_BUFFER.pop()
-        if suspect_pair is None:
-            kk = -1
-        else:
+        if suspect_pair is not None:
             kk = random.randint(kk_min, kk_max)
             suspect_pair = suspect_pair[0]
 
     SUSPECT_BUFFER.append(suspect_pair)
 
-    LOGGER.debug('Select idx:{} for suspect pair'.format(suspect_pair.idx))
+    if suspect_pair is not None:
+        LOGGER.debug('Select idx:{} for suspect pair'.format(suspect_pair.idx))
 
     return pairs, suspect_pair, kk
 
 
+def check_inter():
+    '''
+    Check INTER_BUFFER, if it contains pairs, prepare to enter to the inter_loop.
+    '''
+    loop_name = 'RSVP'
+
+    if len(INTER_BUFFER.pairs) > 0:
+        loop_name = 'INTER'
+
+    return loop_name
+
+
 def rsvp_loop():
+
+    LOOP_MANAGER.set(check_inter())
+    if not LOOP_MANAGER.get() == 'RSVP':
+        LOGGER.info('Leave the rsvp loop, reason: {}'.format(
+            LOOP_MANAGER.get()))
+        return
+
     LOGGER.info('RSVP loop started')
     frame_rate_stats['status'] = 'RSVP'
 
@@ -179,10 +183,9 @@ def rsvp_loop():
     frame_rate_stats['t0'] = time.time()
     frame_rate_stats['count'] = 0
 
-    controllers = draw_controllers()
     while True:
         SCREEN.fill(BLACK)
-        draw_controllers()
+        controller.draw()
 
         if not LOOP_MANAGER.get() == 'RSVP':
             LOGGER.info('Escape from RSVP loop')
@@ -192,15 +195,13 @@ def rsvp_loop():
             if event.type == pygame.QUIT:
                 QUIT_PYGAME()
 
-            if event.type == pygame.MOUSEBUTTONUP:
-                for cmd in controllers:
-                    if controllers[cmd][1].contains(event.pos, (1, 1)):
-                        LOGGER.info('Event: MouseButtonDown: {}'.format(cmd))
-                        if cmd == 'CAPTURE':
-                            LOOP_MANAGER.set('CAPTURE')
+            cmd = controller.check(event)
 
-                        if cmd == 'MAIN':
-                            LOOP_MANAGER.set('MAIN')
+            if cmd == 'CAPTURE':
+                LOOP_MANAGER.set('CAPTURE')
+
+            if cmd == 'MAIN':
+                LOOP_MANAGER.set('MAIN')
 
         if (time.time() - frame_rate_stats['t0']) * RATE > frame_rate_stats['count']:
             if frame_rate_stats['status'] == 'RSVP':
@@ -212,6 +213,16 @@ def rsvp_loop():
                 if frame_rate_stats['count'] == k + offset:
                     # The chunk is finished
                     # Start the next chunk
+                    # or Enter into the inter_loop
+
+                    LOGGER.info('Rsvp loop: chunk stops')
+
+                    LOOP_MANAGER.set(check_inter())
+                    if not LOOP_MANAGER.get() == 'RSVP':
+                        LOGGER.info('Leave the rsvp loop, reason: {}'.format(
+                            LOOP_MANAGER.get()))
+                        return
+
                     offset += k
                     pairs, suspect_pair, kk = mk_chunk()
 
@@ -221,6 +232,11 @@ def rsvp_loop():
                         'Display suspect picture: {}'.format(pair.idx))
                 else:
                     pair = pairs[frame_rate_stats['count'] - offset]
+
+                if frame_rate_stats['count'] in [kk + offset, 3+offset]:
+                    # !!! Append the pair into the INTER_BUFFER
+                    # !!! Only for development
+                    INTER_BUFFER.append(pair)
 
                 frame_rate_stats['count'] += 1
 
