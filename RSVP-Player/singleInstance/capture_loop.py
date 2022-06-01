@@ -138,7 +138,7 @@ def draw_summary():
 def capture_loop():
     LOGGER.info('Capture loop started')
 
-    VIDEO_FLOW.connect()
+    # VIDEO_FLOW.connect()
     size = (
         int(CFG['picture']['width']),
         int(CFG['picture']['height'])

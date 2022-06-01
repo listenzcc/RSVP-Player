@@ -139,11 +139,7 @@ if CFG['RSVP']['rate'] == '5':
     kk_min = 5
     kk_max = 15
 
-
-def rsvp_loop():
-    LOGGER.info('RSVP loop started')
-    frame_rate_stats['status'] = 'RSVP'
-
+def mk_chunk():
     # Randomly select non target surfaces with k times
     # The kk-th surface will be replaced by the suspect surface
     # The kk value will be set to -1 if there is not any suspect surface,
@@ -160,10 +156,20 @@ def rsvp_loop():
             kk = random.randint(kk_min, kk_max)
             suspect_pair = suspect_pair[0]
 
-    size = (
-        int(CFG['picture']['width']),
-        int(CFG['picture']['height'])
-    )
+    SUSPECT_BUFFER.append(suspect_pair)
+
+    LOGGER.debug('Select idx:{} for suspect pair'.format(suspect_pair.idx))
+
+    return pairs, suspect_pair, kk
+
+
+def rsvp_loop():
+    LOGGER.info('RSVP loop started')
+    frame_rate_stats['status'] = 'RSVP'
+
+    pairs, suspect_pair, kk = mk_chunk()
+
+    offset = 0
 
     position = (
         int(CFG['centerPatch']['left']),
@@ -198,15 +204,23 @@ def rsvp_loop():
 
         if (time.time() - frame_rate_stats['t0']) * RATE > frame_rate_stats['count']:
             if frame_rate_stats['status'] == 'RSVP':
-                if frame_rate_stats['count'] >= k:
+                if frame_rate_stats['count'] > k + offset:
+                    LOGGER.error('RSVP_LOOP is running incorrect since {} > {}'.format(
+                        frame_rate_stats['count'], k + offset))
                     break
 
-                if frame_rate_stats['count'] == kk:
+                if frame_rate_stats['count'] == k + offset:
+                    # The chunk is finished
+                    # Start the next chunk
+                    offset += k
+                    pairs, suspect_pair, kk = mk_chunk()
+
+                if frame_rate_stats['count'] == kk + offset:
                     pair = suspect_pair
                     LOGGER.debug(
                         'Display suspect picture: {}'.format(pair.idx))
                 else:
-                    pair = pairs[frame_rate_stats['count']]
+                    pair = pairs[frame_rate_stats['count'] - offset]
 
                 frame_rate_stats['count'] += 1
 
