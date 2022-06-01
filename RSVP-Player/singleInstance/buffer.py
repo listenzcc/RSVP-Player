@@ -15,7 +15,7 @@ class RawBuffer(object):
     def append(self, pair):
         self.pairs.append(pair)
 
-    def count(self):
+    def refresh(self):
         self.valid = [e for e in self.pairs if e.count[1] == 1]
         self.frame_count = len(self.pairs)
         self.surface_count = len(self.valid)
@@ -31,7 +31,11 @@ class NonTargetBuffer(RawBuffer):
         pass
 
     def get_random(self, k=100):
-        self.count()
+        self.refresh()
+
+        if self.surface_count == 0:
+            LOGGER.error('NonTargetBuffer has no surface. Run CAPTURE first')
+            return
 
         if k > self.surface_count:
             LOGGER.warning('NonTargetBuffer can not random_get enough surfaces, since {} > {}'.format(
@@ -43,7 +47,8 @@ class NonTargetBuffer(RawBuffer):
         return random.sample(self.valid, k=k)
 
     def get_all(self):
-        self.count()
+        self.refresh()
+        LOGGER.debug('NonTargetBuffer gives all the valid surfaces')
         return self.valid
 
 
@@ -60,10 +65,11 @@ class SuspectBuffer(RawBuffer):
         pass
 
     def pop(self):
-        self.count()
+        self.refresh()
 
         if self.surface_count == 0:
-            LOGGER.error('Can not pop, since the surface buffer is empty')
+            LOGGER.error(
+                'SuspectBuffer can not pop, since the surface buffer is empty')
             return
 
         idx = self.valid[0].idx
@@ -71,18 +77,18 @@ class SuspectBuffer(RawBuffer):
         return self.pop_idx(idx)
 
     def pop_idx(self, idx):
-        self.count()
+        self.refresh()
         select = [e for e in self.valid if e.idx == idx]
 
         if len(select) == 0:
-            LOGGER.error('Can not find idx: {}'.format(idx))
+            LOGGER.error('SuspectBuffer can not find idx: {}'.format(idx))
             return
 
         if len(select) > 1:
             LOGGER.warning(
-                'Find {} pairs for idx: {}'.format(len(select), idx))
+                'SuspectBuffer find {} pairs for idx: {}'.format(len(select), idx))
 
-        LOGGER.debug('Pop idx: {}'.format(idx))
+        LOGGER.debug('SuspectBuffer pop idx: {}'.format(idx))
 
         self._remove_idx(idx)
 
@@ -91,20 +97,47 @@ class SuspectBuffer(RawBuffer):
     def _remove_idx(self, idx):
         n = len(self.pairs)
         self.pairs = [e for e in self.pairs if not e.idx == idx]
-        self.count()
+        self.refresh()
         LOGGER.debug(
             'Pop idx: {}, size changes: {} -> {}'.format(idx, n, self.frame_count))
 
 
 SUSPECT_BUFFER = SuspectBuffer()
 
+# %%
+
+
+class InterruptBuffer(RawBuffer):
+    def __init__(self):
+        super(InterruptBuffer, self).__init__()
+        LOGGER.info('InterruptBuffer initialized')
+        pass
+
+    def pop(self):
+        if len(self.pairs) == 0:
+            LOGGER.error(
+                'InterruptBuffer can not pop, since the pairs are empty')
+            return
+
+        first = self.pairs.pop(0)
+
+        self.refresh()
+
+        LOGGER.debug('InterruptBuffer pops 1 pairs')
+
+        return first
+
+
+INTERRUPT_BUFFER = InterruptBuffer()
+
 
 # %%
 
 
 def summary_buffers():
-    NON_TARGET_BUFFER.count()
-    SUSPECT_BUFFER.count()
+    NON_TARGET_BUFFER.refresh()
+    SUSPECT_BUFFER.refresh()
+    INTERRUPT_BUFFER.refresh()
     output = [
         '| Summary           {:4s} {:4s} |'.format('', ''),
         '| Buffer Name     | {:4s}|{:4s} |'.format('frm', 'srf'),

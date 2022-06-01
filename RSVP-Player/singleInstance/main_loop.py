@@ -3,8 +3,9 @@ from .logger import LOGGER
 from .loop_manager import LOOP_MANAGER
 from .constants import *
 
-
 # %%
+
+
 def draw_controllers():
     width = 1
     color = WHITE
@@ -60,5 +61,8 @@ def main_loop():
                         LOGGER.info('Event: MouseButtonDown: {}'.format(cmd))
                         if cmd == 'CAPTURE':
                             LOOP_MANAGER.set('CAPTURE')
+
+                        if cmd == 'RSVP':
+                            LOOP_MANAGER.set('RSVP')
 
 # %%

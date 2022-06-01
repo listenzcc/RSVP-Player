@@ -133,7 +133,7 @@ def draw_summary():
 
 # %%
 def capture_loop():
-    LOGGER.info('Inter loop started')
+    LOGGER.info('Capture loop started')
 
     VIDEO_FLOW.connect()
     size = (
@@ -154,14 +154,14 @@ def capture_loop():
         draw_controllers()
 
         if not LOOP_MANAGER.get() == 'CAPTURE':
-            LOGGER.info('Escape from inter loop')
+            LOGGER.info('Escape from capture loop')
             break
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 QUIT_PYGAME()
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONUP:
                 for cmd in controllers:
                     # Received MOUSEBUTTONDOWN event on cmd
                     if controllers[cmd][1].contains(event.pos, (1, 1)):
@@ -173,6 +173,9 @@ def capture_loop():
                             frame_rate_stats['record'] = not frame_rate_stats['record']
                             LOGGER.debug(
                                 'Frame rate stats changes: {}'.format(frame_rate_stats))
+
+                        if cmd == 'RSVP':
+                            LOOP_MANAGER.set('RSVP')
 
         if (time.time() - frame_rate_stats['t0']) * RATE > frame_rate_stats['count']:
             frame_rate_stats['count'] += 1
