@@ -1,12 +1,16 @@
 # %%
 import cv2
 
+import os
+
 from .logger import LOGGER
 from .constants import CFG
 from pathlib import Path
 
 # %%
-path = Path(CFG['videoFlow']['path'])
+# path = Path(CFG['videoFlow']['path'])
+
+path = Path(os.environ.get('HOME'), 'videos', 'video.mp4')
 
 # %%
 

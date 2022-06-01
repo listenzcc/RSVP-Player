@@ -29,7 +29,7 @@ def compute_frame_rate():
     return rate
 
 
-def draw_frame_rate():
+def draw_frame_rate(error=''):
     width = 1
 
     if frame_rate_stats['record']:
@@ -53,6 +53,9 @@ def draw_frame_rate():
         record = 'REC'
     else:
         record = '---'
+
+    if error is not '':
+        record = error
 
     string = '| {} | Count: {} | Pass: {:0.3f} | Rate: {:0.2f} |'.format(
         record, count, t, rate)
@@ -180,14 +183,19 @@ def capture_loop():
         if (time.time() - frame_rate_stats['t0']) * RATE > frame_rate_stats['count']:
             frame_rate_stats['count'] += 1
             frame = VIDEO_FLOW.get()
-            surface = frame2surface(frame, size)
 
-            if frame_rate_stats['record']:
-                pair = Pair(frame, surface)
-                NON_TARGET_BUFFER.append(pair)
+            if frame is not None:
+                surface = frame2surface(frame, size)
 
-            SCREEN.blit(surface, position)
-            draw_frame_rate()
+                if frame_rate_stats['record']:
+                    pair = Pair(frame, surface)
+                    NON_TARGET_BUFFER.append(pair)
+
+                SCREEN.blit(surface, position)
+                draw_frame_rate()
+            else:
+                draw_frame_rate(error='No videoFlow')
+
             draw_summary()
             pygame.display.flip()
 
