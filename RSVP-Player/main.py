@@ -12,6 +12,8 @@ from singleInstance.inter_loop import inter_loop
 
 from singleInstance.video_flow import VIDEO_FLOW
 
+from singleInstance.buffer import SERVER
+
 # %%
 # Connect the VIDEO_FLOW and keep it FOREVER
 VIDEO_FLOW.connect()
@@ -23,6 +25,7 @@ VIDEO_FLOW.connect()
 LOOP_MANAGER.set('MAIN')
 
 # %%
+SERVER.serve()
 
 # %%
 

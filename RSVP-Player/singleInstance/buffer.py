@@ -1,6 +1,13 @@
 # %%
+import socket
 import random
+import threading
+import numpy as np
+
+from .toolbox import _bytes, _pic_decoder, Pair
+
 from .logger import LOGGER
+
 from .constants import *
 
 # %%
@@ -16,6 +23,8 @@ class RawBuffer(object):
         self.pairs.insert(0, pair)
 
     def append(self, pair):
+        if pair is None:
+            return
         self.pairs.append(pair)
 
     def refresh(self):
@@ -133,6 +142,163 @@ class InterBuffer(RawBuffer):
 
 INTER_BUFFER = InterBuffer()
 
+# %%
+
+
+def _append_frame(uid, body):
+    frame = _pic_decoder(body)
+    if frame is None:
+        LOGGER.error('Can not decode body')
+        return -1
+
+    pair = Pair(frame, idx=uid)
+    pair.compute()
+
+    SUSPECT_BUFFER.append(pair)
+
+    LOGGER.debug('SUSPECT_BUFFER appended')
+
+    return 0
+
+
+class IncomeClient(object):
+    '''
+    Handle the income TCP client.
+    '''
+
+    def __init__(self, client, addr):
+        self.client = client
+        self.addr = addr
+
+        t = threading.Thread(target=self._hello, args=(), daemon=True)
+        t.start()
+
+        LOGGER.info('New client is received {}, {}'.format(client, addr))
+        pass
+
+    def _hello(self):
+        self.client.send(_bytes(CFG['TCP']['welcomeMessage']))
+
+        self.is_alive = True
+
+        while True:
+            try:
+                recv = self.client.recv(1024)
+
+                LOGGER.info('Receive {} from {}'.format(recv[:20], self.addr))
+
+                # !!! Got suspect picture
+                # 7: length of 'suspect'
+                # 16: uid_length
+                # 64: n_length
+                # 100+: length of picture bytes
+                if recv.startswith(b'suspect') and len(recv) > (7 + 16 + 64 + 100):
+                    byteorder = 'little'
+                    uid = int.from_bytes(recv[7:7+16], byteorder)
+                    n_body = int.from_bytes(recv[7+16:7+16+64], byteorder)
+                    body = recv[7+16+64:]
+                    remain = n_body + 7+16+64 - len(recv)
+                    LOGGER.debug('New suspect image received {}, {} | {}'.format(
+                        uid, n_body-remain, n_body))
+
+                    while remain > 0:
+                        recv = self.client.recv(min(remain, 1024))
+                        body += recv
+                        remain -= len(recv)
+
+                    if remain < 0:
+                        LOGGER.error(
+                            'Incorrect image translation, since remain < 0, {}'.format(remain))
+                        continue
+
+                    LOGGER.debug('Suspect image translation finished')
+
+                    _append_frame(uid, body)
+
+                    self.client.send(
+                        _bytes('Got suspect frame: {}'.format(uid)))
+
+                    continue
+
+                self.client.send(_bytes('UnDo') + recv)
+
+            except ConnectionResetError:
+                LOGGER.error('Connection reset {}, {}'.format(
+                    self.client, self.addr))
+                break
+
+            # if recv == b'':
+            #     LOGGER.error('Connection closed {}, {}'.format(
+            #         self.client, self.addr))
+            #     break
+
+            # print('<<', recv)
+
+        self.client.close()
+
+        self.is_alive = False
+
+        pass
+
+
+class TCPServer(object):
+    '''
+    TCP Server
+    '''
+
+    def __init__(self):
+        self.bind()
+        self.clients = []
+        LOGGER.info('TCP initialized')
+        pass
+
+    def refresh(self):
+        self.clients = [e for e in self.clients if e.is_alive]
+
+    def bind(self):
+        '''
+        Bind the host:port
+        '''
+        self.socket = socket.socket()
+
+        host = CFG['TCP']['host']
+        port = int(CFG['TCP']['port'])
+
+        self.socket.bind((host, port))
+
+        LOGGER.info('TCP binds on {}:{}'.format(host, port))
+
+    def serve(self):
+        '''
+        Start the serving
+        '''
+        t = threading.Thread(target=self.listen, args=(), daemon=True)
+        t.start()
+
+        LOGGER.info('TCP servers on {}'.format(self.socket))
+
+        pass
+
+    def listen(self):
+        client_limit = int(CFG['TCP']['clientLimit'])
+        self.socket.listen(client_limit)
+
+        LOGGER.info('TCP listens: {}'.format(client_limit))
+
+        # !!! It listens FOREVER
+        # When new client connects,
+        # it will be handled by the IncomeClient.
+        while True:
+            client, addr = self.socket.accept()
+            LOGGER.debug('New client: {}: {}'.format(client, addr))
+            client.send(_bytes(CFG['TCP']['welcomeMessage']))
+
+            self.clients.append(IncomeClient(client, addr))
+
+            pass
+
+
+SERVER = TCPServer()
 
 # %%
 
@@ -141,18 +307,23 @@ def summary_buffers():
     NON_TARGET_BUFFER.refresh()
     SUSPECT_BUFFER.refresh()
     INTER_BUFFER.refresh()
+    SERVER.refresh()
     output = [
-        '| Summary           {:4s} {:4s} |'.format('', ''),
-        '| Buffer Name     | {:4s}|{:4s} |'.format('frm', 'srf'),
+        '| Summary           {:4s}   {:4s} |'.format('', ''),
+        '| Buffer Name     | {:4s} | {:4s} |'.format('frm', 'srf'),
         # Non target buffer
-        '| NonTargetBuffer | {:4d}|{:4d} |'.format(
+        '| NonTargetBuffer | {:4d} | {:4d} |'.format(
             NON_TARGET_BUFFER.frame_count, NON_TARGET_BUFFER.surface_count),
         # Suspect buffer
-        '| SuspectBuffer   | {:4d}|{:4d} |'.format(
+        '| SuspectBuffer   | {:4d} | {:4d} |'.format(
             SUSPECT_BUFFER.frame_count, SUSPECT_BUFFER.surface_count),
         # Interrupt buffer
-        '| InterruptBuffer | {:4d}|{:4d} |'.format(
+        '| InterruptBuffer | {:4d} | {:4d} |'.format(
             INTER_BUFFER.frame_count, INTER_BUFFER.surface_count),
+        # TCP connection
+        '| TCPConnection   | {:4d} | {:4d} |'.format(
+            len(SERVER.clients), 0
+        )
     ]
 
     return output

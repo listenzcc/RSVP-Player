@@ -5,6 +5,7 @@ from .loop_manager import LOOP_MANAGER
 from .toolbox import Controller
 
 from .buffer import INTER_BUFFER
+from .buffer import SUSPECT_BUFFER
 from .buffer import summary_buffers
 
 from .constants import *
@@ -94,17 +95,18 @@ def inter_loop():
 
                 pass
 
-
             if cmd == 'ACCEPT':
                 escape = True
                 LOOP_MANAGER.set('RSVP')
                 LOGGER.info('Accept idx: {}'.format(pair.idx))
+                SUSPECT_BUFFER.pop_idx(pair.idx)
                 pass
 
             if cmd == 'DENY':
                 escape = True
                 LOOP_MANAGER.set('RSVP')
                 LOGGER.info('Deny idx: {}'.format(pair.idx))
+                SUSPECT_BUFFER.pop_idx(pair.idx)
                 pass
 
             if cmd == 'IGNORE':
