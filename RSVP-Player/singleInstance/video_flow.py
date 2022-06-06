@@ -47,7 +47,7 @@ class VideoFlow(object):
         # Convert BGR2RGB
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # Flip
-        cv2.flip(frame, 1, frame)
+        # cv2.flip(frame, 1, frame)
         frame = frame.transpose([1, 0, 2])
         self.count += 1
         return frame
