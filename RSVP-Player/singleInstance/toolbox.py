@@ -55,6 +55,7 @@ class Controller(object):
     def __init__(self, controllers, title='none'):
         self.controllers = controllers
         self.title = title
+        self.mouse_over = ''
         self.draw()
         LOGGER.debug('Controller initialized: {}, {}'.format(
             title, controllers))
@@ -63,6 +64,15 @@ class Controller(object):
         '''
         Check the clicked controller
         '''
+        # Deal with mouse_over events
+        if event.type == pygame.MOUSEMOTION:
+            self.mouse_over = ''
+            controllers = self.controllers
+            for cmd in controllers:
+                if controllers[cmd][1].contains(event.pos, (1, 1)):
+                    self.mouse_over = cmd
+                    break
+
         # Only accept MOUSEBUTTONUP
         if not event.type == pygame.MOUSEBUTTONUP:
             return
@@ -121,7 +131,6 @@ class Controller(object):
 
         # Draw controllers
         width = 1
-        color = WHITE
         background = None
         antialias = True
 
@@ -130,6 +139,11 @@ class Controller(object):
         _left = 30
 
         for j, cmd in enumerate(controllers):
+            if cmd == self.mouse_over:
+                color = YELLOW
+            else:
+                color = WHITE
+
             string = controllers[cmd][0]
             text = FONT.render(string, antialias, color, background)
             rect = text.get_rect()
@@ -139,6 +153,7 @@ class Controller(object):
 
             SCREEN.fill(BLACK, rect)
             SCREEN.blit(text, rect)
+
             pygame.draw.rect(SCREEN, color, rect, width=width)
 
             controllers[cmd][1] = rect
