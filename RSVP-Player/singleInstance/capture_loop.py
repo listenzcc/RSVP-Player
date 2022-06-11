@@ -7,6 +7,7 @@ from .buffer import NON_TARGET_BUFFER
 
 from .buffer import summary_buffers
 
+from .toggle_options import TOGGLE_OPTION
 from .video_flow import VIDEO_FLOW, known_path
 from .logger import LOGGER
 from .loop_manager import LOOP_MANAGER
@@ -139,6 +140,7 @@ def capture_loop():
         SCREEN.fill(BLACK)
         # draw_controllers(controllers)
         controller.draw()
+        TOGGLE_OPTION.draw()
 
         if not LOOP_MANAGER.get() == 'CAPTURE':
             LOGGER.info('Escape from capture loop')
@@ -149,6 +151,7 @@ def capture_loop():
                 QUIT_PYGAME()
 
             cmd = controller.check(event)
+            TOGGLE_OPTION.check(event)
 
             if cmd == 'MAIN':
                 LOOP_MANAGER.set('MAIN')
@@ -184,7 +187,9 @@ def capture_loop():
             else:
                 draw_frame_rate(error='No videoFlow')
 
-            draw_summary()
+            if TOGGLE_OPTION.options['SUM'][2]:
+                draw_summary()
+
             pygame.display.flip()
 
 

@@ -5,6 +5,7 @@
         "imread",
         "MOUSEBUTTONDOWN",
         "MOUSEBUTTONUP",
+        "MOUSEMOTION",
         "pygame",
         "surfarray"
     ]

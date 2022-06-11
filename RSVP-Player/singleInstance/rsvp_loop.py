@@ -3,6 +3,7 @@ import time
 import random
 
 from .toolbox import Controller
+from .toggle_options import TOGGLE_OPTION
 
 from .buffer import SUSPECT_BUFFER
 from .buffer import NON_TARGET_BUFFER
@@ -35,7 +36,7 @@ def compute_frame_rate():
 def draw_frame_rate():
     width = 1
 
-    if frame_rate_stats['status'] == 'RSVP':
+    if frame_rate_stats['status'].startswith('RSVP'):
         color = WHITE
     else:
         color = RED
@@ -110,12 +111,12 @@ def draw_summary():
 
 
 if CFG['RSVP']['rate'] == '10':
-    k = 40
+    chunk_length = 40
     kk_min = 10
     kk_max = 30
 
 if CFG['RSVP']['rate'] == '5':
-    k = 20
+    chunk_length = 20
     kk_min = 5
     kk_max = 15
 
@@ -127,23 +128,63 @@ def mk_chunk():
     The kk value will be set to -1 if there is not any suspect surface,
     to make sure the replacement will never happen
     '''
-    pairs = NON_TARGET_BUFFER.get_random(k=k)
-    if pairs is None:
-        frame_rate_stats['status'] = 'ERROR - no capture'
-        return None, None, None
 
-    kk = -1
-    suspect_pair = None
-    if frame_rate_stats['status'] == 'RSVP':
+    if TOGGLE_OPTION.options['UNT'][2]:
+        # Use non target pictures
+        frame_rate_stats['status'] = 'RSVP(UNT)'
+        pairs = NON_TARGET_BUFFER.get_random(k=chunk_length)
+        if pairs is None:
+            frame_rate_stats['status'] = 'ERROR - no capture'
+            LOGGER.warning('Can not find captured pictures for rsvp display')
+            return None, None, None
+
+        kk = -1
         suspect_pair = SUSPECT_BUFFER.pop()
+
         if suspect_pair is not None:
             kk = random.randint(kk_min, kk_max)
             suspect_pair = suspect_pair[0]
 
-    SUSPECT_BUFFER.append(suspect_pair)
+        SUSPECT_BUFFER.append(suspect_pair)
 
-    if suspect_pair is not None:
-        LOGGER.debug('Select idx:{} for suspect pair'.format(suspect_pair.idx))
+        if suspect_pair is not None:
+            LOGGER.debug(
+                'Select idx:{} for suspect pair'.format(suspect_pair.idx))
+
+        suspect_pair = [suspect_pair]
+        kk = [kk]
+
+    if not TOGGLE_OPTION.options['UNT'][2]:
+        # Not use non target pictures
+        frame_rate_stats['status'] = 'RSVP(SUS)'
+
+        # We do not need pairs
+        pairs = []
+
+        # We need every pair to be the suspect pair
+        kk = [e for e in range(chunk_length)]
+
+        # We need the suspect_pair for chunk_length elements
+        suspect_pair = []
+        for _ in range(chunk_length):
+            s = SUSPECT_BUFFER.pop()
+            if s is None:
+                frame_rate_stats['status'] = 'ERROR - no suspect'
+                LOGGER.warning(
+                    'Can not find any suspect pair, and the option is not use non-target-pictures')
+                return None, None, None
+
+            suspect_pair.append(s[0])
+            SUSPECT_BUFFER.append(s[0])
+
+        random.shuffle(suspect_pair)
+
+    # Convert the suspect_pair and kk into list for .pop() method
+    # The kk has one more element in the 1st position,
+    # it means it will not be used.
+    suspect_pair.reverse()
+    kk.append(-1)
+    kk.reverse()
 
     return pairs, suspect_pair, kk
 
@@ -186,6 +227,7 @@ def rsvp_loop():
     while True:
         SCREEN.fill(BLACK)
         controller.draw()
+        TOGGLE_OPTION.draw()
 
         if not LOOP_MANAGER.get() == 'RSVP':
             LOGGER.info('Escape from RSVP loop')
@@ -196,6 +238,7 @@ def rsvp_loop():
                 QUIT_PYGAME()
 
             cmd = controller.check(event)
+            TOGGLE_OPTION.check(event)
 
             if cmd == 'CAPTURE':
                 LOOP_MANAGER.set('CAPTURE')
@@ -203,14 +246,54 @@ def rsvp_loop():
             if cmd == 'MAIN':
                 LOOP_MANAGER.set('MAIN')
 
+        '''
+        The variables mean:
+        - chunk_length: The length of the chunk;
+        - kk: The idx of the suspect picture;
+        - pairs: The non-target pairs;
+        - suspect_pair: The target pair;
+        - offset: The next chunk is append when the chunk is finished **immediately**,
+                  so the offset is the offset of the beginning index.
+        '''
+
         if (time.time() - frame_rate_stats['t0']) * RATE > frame_rate_stats['count']:
-            if frame_rate_stats['status'] == 'RSVP':
-                if frame_rate_stats['count'] > k + offset:
+            # Status is ERROR
+            if not frame_rate_stats['status'].startswith('RSVP'):
+                pairs, suspect_pair, kk = mk_chunk()
+                if frame_rate_stats['status'].startswith('RSVP'):
+                    offset = 0
+                    frame_rate_stats['t0'] = time.time()
+                    frame_rate_stats['count'] = 0
+                    continue
+
+            # Status from UNT to SUS
+            if frame_rate_stats['status'] == 'RSVP(UNT)' and not TOGGLE_OPTION.options['UNT'][2]:
+                LOGGER.debug('Switch from UNT to SUS')
+                pairs, suspect_pair, kk = mk_chunk()
+                if frame_rate_stats['status'].startswith('RSVP'):
+                    offset = 0
+                    frame_rate_stats['t0'] = time.time()
+                    frame_rate_stats['count'] = 0
+                    continue
+
+            # Status from SUS to UNT
+            if frame_rate_stats['status'] == 'RSVP(SUS)' and TOGGLE_OPTION.options['UNT'][2]:
+                LOGGER.debug('Switch from SUS to UNT')
+                pairs, suspect_pair, kk = mk_chunk()
+                if frame_rate_stats['status'].startswith('RSVP'):
+                    offset = 0
+                    frame_rate_stats['t0'] = time.time()
+                    frame_rate_stats['count'] = 0
+                    continue
+
+            if frame_rate_stats['status'].startswith('RSVP'):
+
+                if frame_rate_stats['count'] > chunk_length + offset:
                     LOGGER.error('RSVP_LOOP is running incorrect since {} > {}'.format(
-                        frame_rate_stats['count'], k + offset))
+                        frame_rate_stats['count'], chunk_length + offset))
                     break
 
-                if frame_rate_stats['count'] == k + offset:
+                if frame_rate_stats['count'] == chunk_length + offset:
                     # The chunk is finished
                     # Start the next chunk
                     # or Enter into the inter_loop
@@ -223,27 +306,35 @@ def rsvp_loop():
                             LOOP_MANAGER.get()))
                         return
 
-                    offset += k
+                    offset += chunk_length
                     pairs, suspect_pair, kk = mk_chunk()
 
-                if frame_rate_stats['count'] == kk + offset:
-                    pair = suspect_pair
+                print(frame_rate_stats['count'], kk[-1], offset)
+                if kk[-1] > -1 and frame_rate_stats['count'] == kk[-1] + offset:
+                    pair = suspect_pair.pop()
+
+                    if True and frame_rate_stats['count'] in [kk[-1] + offset, 3+offset]:
+                        # !!! Append the pair into the INTER_BUFFER
+                        # !!! Only for development
+                        INTER_BUFFER.append(pair)
+
+                    kk.pop()
+
                     LOGGER.debug(
                         'Display suspect picture: {}'.format(pair.idx))
                 else:
                     pair = pairs[frame_rate_stats['count'] - offset]
 
-                if frame_rate_stats['count'] in [kk + offset, 3+offset]:
-                    # !!! Append the pair into the INTER_BUFFER
-                    # !!! Only for development
-                    INTER_BUFFER.append(pair)
-
                 frame_rate_stats['count'] += 1
 
                 SCREEN.blit(pair.surface, position)
 
-            draw_frame_rate()
-            draw_summary()
+            if TOGGLE_OPTION.options['OSD'][2]:
+                draw_frame_rate()
+
+            if TOGGLE_OPTION.options['SUM'][2]:
+                draw_summary()
+
             pygame.display.flip()
 
 # %%

@@ -46,7 +46,7 @@ class VideoFlow(object):
             self.release()
         self.capture = cv2.VideoCapture(path)
         self.count = 0
-        LOGGER.info('Video flow connected')
+        LOGGER.info('Video flow connected to name:{}'.format(name))
 
     def release(self):
         self.capture.release()
