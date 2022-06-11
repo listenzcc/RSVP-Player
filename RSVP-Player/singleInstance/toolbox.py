@@ -149,7 +149,7 @@ class Controller(object):
             rect = text.get_rect()
             rect.height *= 1.1
             rect.center = (left, top)
-            left += _left + rect.width
+            left += _left + rect.width + 20
 
             SCREEN.fill(BLACK, rect)
             SCREEN.blit(text, rect)

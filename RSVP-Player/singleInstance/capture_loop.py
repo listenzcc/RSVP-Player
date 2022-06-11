@@ -7,7 +7,7 @@ from .buffer import NON_TARGET_BUFFER
 
 from .buffer import summary_buffers
 
-from .video_flow import VIDEO_FLOW
+from .video_flow import VIDEO_FLOW, known_path
 from .logger import LOGGER
 from .loop_manager import LOOP_MANAGER
 from .constants import *
@@ -18,6 +18,7 @@ frame_rate_stats = dict(
     t0=time.time(),
     record=False,
     rate=-1,
+    name='[not-set]'
 )
 
 
@@ -46,6 +47,7 @@ def draw_frame_rate(error=''):
     t0 = frame_rate_stats['t0']
     t = time.time() - t0
     count = frame_rate_stats['count']
+    name = frame_rate_stats['name']
     rate = compute_frame_rate()
     frame_rate_stats['rate'] = rate
 
@@ -57,8 +59,8 @@ def draw_frame_rate(error=''):
     if error is not '':
         record = error
 
-    string = '| {} | Count: {} | Pass: {:0.3f} | Rate: {:0.2f} |'.format(
-        record, count, t, rate)
+    string = '| {} | Name: {} | Count: {} | Pass: {:0.3f} | Rate: {:0.2f} |'.format(
+        record, name, count, t, rate)
 
     text = FONT.render(string, antialias, color, background)
     rect = text.get_rect()
@@ -76,6 +78,10 @@ controllers = dict(
     RSVP=['__RSVP__', -1],
     REC=['__REC__', -1],
 )
+
+for name in known_path:
+    s = '[{}]'.format(name)
+    controllers[s] = [s, -1]
 
 # controllers = draw_controllers(controllers)
 
@@ -155,8 +161,15 @@ def capture_loop():
             if cmd == 'RSVP':
                 LOOP_MANAGER.set('RSVP')
 
+            if cmd is not None:
+                if cmd.startswith('[') and cmd.endswith(']'):
+                    name = cmd[1:-1]
+                    VIDEO_FLOW.connect(name)
+
         if (time.time() - frame_rate_stats['t0']) * RATE > frame_rate_stats['count']:
             frame_rate_stats['count'] += 1
+            frame_rate_stats['name'] = VIDEO_FLOW.name
+
             frame = VIDEO_FLOW.get()
 
             if frame is not None:

@@ -10,7 +10,15 @@ from pathlib import Path
 # %%
 # path = Path(CFG['videoFlow']['path'])
 
-path = Path(os.environ.get('HOME'), 'videos', 'video.mp4')
+# path = Path(os.environ.get('HOME'), 'videos', 'video.mp4')
+
+known_path = dict(
+    video=Path(os.environ.get('HOME'), 'videos', 'video.mp4'),
+    game=Path(os.environ.get('HOME'), 'videos', 'game.mp4'),
+    ekaterina=Path(os.environ.get('HOME'), 'videos', 'ekaterina.mp4'),
+    homeland=Path(os.environ.get('HOME'), 'videos', 'homeland.mp4'),
+    invalid=Path(os.environ.get('HOME'), 'videos', 'not-exist.mp4'),
+)
 
 # %%
 
@@ -21,10 +29,22 @@ class VideoFlow(object):
         LOGGER.info('Video flow initialized')
         pass
 
-    def connect(self, path=path):
+    def connect(self, name='video'):
+        # ! It is a dangerous method
+        # ! We will find path for know_path,
+        # ! if fails, the name will be used.
+
+        self.name = '{}'.format(name)
+
+        path = known_path.get(name, name)
+
+        # Convert the path into string
+        if isinstance(path, Path):
+            path = path.as_posix()
+
         if self.capture is not None:
             self.release()
-        self.capture = cv2.VideoCapture(path.as_posix())
+        self.capture = cv2.VideoCapture(path)
         self.count = 0
         LOGGER.info('Video flow connected')
 
