@@ -92,6 +92,79 @@ if CFG['RSVP']['rate'] == '5':
 
 
 def mk_chunk():
+
+    pairs2 = None
+
+    # Single
+    if TOGGLE_OPTION.options['UNT'][2]:
+        # Use non target pictures
+        pairs = NON_TARGET_BUFFER.get_random(k=chunk_length)
+        if pairs is None:
+            frame_rate_stats['status'] = 'ERROR - no capture'
+            LOGGER.warning('Can not find captured pictures for rsvp display')
+            return None, None
+
+        frame_rate_stats['status'] = 'RSVP(UNT)'
+        suspect_pair = SUSPECT_BUFFER.pop()
+
+        if suspect_pair is not None:
+            LOGGER.debug(
+                'Select idx:{} for suspect pair'.format(suspect_pair[0].idx))
+            kk = random.randint(kk_min, kk_max)
+            pairs[kk] = suspect_pair[0]
+
+    # Dual
+    if TOGGLE_OPTION.options['UNT'][2] and CFG['RSVP']['mode'] == 'dual':
+        # Use non target pictures
+        pairs2 = NON_TARGET_BUFFER.get_random(k=chunk_length)
+        if pairs2 is None:
+            frame_rate_stats['status'] = 'ERROR - no capture - 2'
+            LOGGER.warning('Can not find captured pictures for rsvp display 2')
+            return None, None
+
+        frame_rate_stats['status'] = 'RSVP(UNT)'
+        suspect_pair = SUSPECT_BUFFER.pop()
+
+        if suspect_pair is not None:
+            LOGGER.debug(
+                'Select idx:{} for suspect pair 2'.format(suspect_pair[0].idx))
+            kk = random.randint(kk_min, kk_max)
+            pairs2[kk] = suspect_pair[0]
+
+    # Single
+    if not TOGGLE_OPTION.options['UNT'][2]:
+        # Not use non target pictures
+        pairs = []
+        frame_rate_stats['status'] = 'RSVP(SUS)'
+        for kk in range(chunk_length):
+            s = SUSPECT_BUFFER.pop()
+            if s is None:
+                frame_rate_stats['status'] = 'ERROR - no suspect'
+                LOGGER.warning(
+                    'Can not find any suspect pair, and the option is not use non-target-pictures')
+                return None, None
+            SUSPECT_BUFFER.append(s[0])
+            pairs.append(s[0])
+
+    # Dual
+    if not TOGGLE_OPTION.options['UNT'][2] and CFG['RSVP']['mode'] == 'dual':
+        # Not use non target pictures
+        pairs2 = []
+        frame_rate_stats['status'] = 'RSVP(SUS)'
+        for kk in range(chunk_length):
+            s = SUSPECT_BUFFER.pop()
+            if s is None:
+                frame_rate_stats['status'] = 'ERROR - no suspect 2'
+                LOGGER.warning(
+                    'Can not find any suspect pair 2, and the option is not use non-target-pictures')
+                return None, None
+            SUSPECT_BUFFER.append(s[0])
+            pairs2.append(s[0])
+
+    return pairs, pairs2
+
+
+def mk_chunk_old():
     '''
     Randomly select non target surfaces with k times
     The kk-th surface will be replaced by the suspect surface
@@ -187,13 +260,18 @@ def rsvp_loop():
     LOGGER.info('RSVP loop started')
     frame_rate_stats['status'] = 'RSVP'
 
-    pairs, suspect_pair, kk = mk_chunk()
+    pairs, pairs2 = mk_chunk()
 
     offset = 0
 
     position = (
         int(CFG['centerPatch']['left']),
         int(CFG['centerPatch']['top'])
+    )
+
+    position2 = (
+        int(CFG['subPatch']['left']),
+        int(CFG['subPatch']['top'])
     )
 
     frame_rate_stats['t0'] = time.time()
@@ -234,27 +312,31 @@ def rsvp_loop():
         if (time.time() - frame_rate_stats['t0']) * RATE > frame_rate_stats['count']:
             # Status is ERROR
             if not frame_rate_stats['status'].startswith('RSVP'):
-                pairs, suspect_pair, kk = mk_chunk()
+                LOGGER.debug('Switch from None to RSVP')
+                # pairs, suspect_pair, kk = mk_chunk()
+                pairs, pairs2 = mk_chunk()
                 if frame_rate_stats['status'].startswith('RSVP'):
                     offset = 0
                     frame_rate_stats['t0'] = time.time()
                     frame_rate_stats['count'] = 0
                     continue
 
-            # Status from UNT to SUS
+            # Status changed from UNT to SUS
             if frame_rate_stats['status'] == 'RSVP(UNT)' and not TOGGLE_OPTION.options['UNT'][2]:
                 LOGGER.debug('Switch from UNT to SUS')
-                pairs, suspect_pair, kk = mk_chunk()
+                # pairs, suspect_pair, kk = mk_chunk()
+                pairs, pairs2 = mk_chunk()
                 if frame_rate_stats['status'].startswith('RSVP'):
                     offset = 0
                     frame_rate_stats['t0'] = time.time()
                     frame_rate_stats['count'] = 0
                     continue
 
-            # Status from SUS to UNT
+            # Status changed from SUS to UNT
             if frame_rate_stats['status'] == 'RSVP(SUS)' and TOGGLE_OPTION.options['UNT'][2]:
                 LOGGER.debug('Switch from SUS to UNT')
-                pairs, suspect_pair, kk = mk_chunk()
+                # pairs, suspect_pair, kk = mk_chunk()
+                pairs, pairs2 = mk_chunk()
                 if frame_rate_stats['status'].startswith('RSVP'):
                     offset = 0
                     frame_rate_stats['t0'] = time.time()
@@ -285,32 +367,54 @@ def rsvp_loop():
                         return
 
                     offset += chunk_length
-                    pairs, suspect_pair, kk = mk_chunk()
+                    # pairs, suspect_pair, kk = mk_chunk()
+                    pairs, pairs2 = mk_chunk()
                     if not frame_rate_stats['status'].startswith('RSVP'):
                         continue
 
                 # Display the suspect picture
-                drawSuspect = False
-                if kk[-1] > -1 and frame_rate_stats['count'] == kk[-1] + offset:
-                    drawSuspect = True
+                # drawSuspect = False
+                # if kk[-1] > -1 and frame_rate_stats['count'] == kk[-1] + offset:
+                #     drawSuspect = True
 
-                    pair = suspect_pair.pop()
+                #     pair = suspect_pair.pop()
 
-                    kk.pop()
+                #     kk.pop()
 
-                    LOGGER.debug(
-                        'Display suspect picture: {}'.format(pair.idx))
+                #     LOGGER.debug(
+                #         'Display suspect picture: {}'.format(pair.idx))
+                # else:
+                #     pair = pairs[frame_rate_stats['count'] - offset]
+
+                pair = pairs[frame_rate_stats['count'] - offset]
+                if pairs2 is not None:
+                    pair2 = pairs2[frame_rate_stats['count'] - offset]
                 else:
-                    pair = pairs[frame_rate_stats['count'] - offset]
+                    pair2 = None
+
+                if pair.idx > 0:
+                    LOGGER.debug(
+                        'Display suspect picture (1): {}'.format(pair.idx))
+
+                if pair2 is not None:
+                    if pair2.idx > 0:
+                        LOGGER.debug(
+                            'Display suspect picture (2): {}'.format(pair2.idx))
 
                 # !!! Append the pair into the INTER_BUFFER
                 # !!! Only for development
-                if True and (frame_rate_stats['count'] in [3+offset] or drawSuspect):
+                if frame_rate_stats['count'] - offset == 3 or pair.idx > 0:
                     INTER_BUFFER.append(pair)
+
+                if pair2 is not None:
+                    if pair2.idx > 0:
+                        INTER_BUFFER.append(pair2)
 
                 frame_rate_stats['count'] += 1
 
                 SCREEN.blit(pair.surface, position)
+                if CFG['RSVP']['mode'] == 'dual':
+                    SCREEN.blit(pair2.surface, position2)
 
             if TOGGLE_OPTION.options['OSD'][2]:
                 draw_frame_rate()

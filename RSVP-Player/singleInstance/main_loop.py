@@ -1,6 +1,8 @@
 # %%
 from .logger import LOGGER
 from .loop_manager import LOOP_MANAGER
+from .toggle_options import TOGGLE_OPTION
+from .buffer import draw_summary
 
 from .toolbox import Controller
 
@@ -22,8 +24,8 @@ def main_loop():
     LOGGER.info('Main loop started')
     while True:
         SCREEN.fill(BLACK)
+        TOGGLE_OPTION.draw()
         controller.draw()
-        pygame.display.flip()
 
         if not LOOP_MANAGER.get() == 'MAIN':
             LOGGER.info('Escape from main loop')
@@ -34,11 +36,15 @@ def main_loop():
                 QUIT_PYGAME()
 
             cmd = controller.check(event)
+            TOGGLE_OPTION.check(event)
 
             if cmd == 'CAPTURE':
                 LOOP_MANAGER.set('CAPTURE')
 
             if cmd == 'RSVP':
                 LOOP_MANAGER.set('RSVP')
+
+        draw_summary()
+        pygame.display.flip()
 
 # %%
