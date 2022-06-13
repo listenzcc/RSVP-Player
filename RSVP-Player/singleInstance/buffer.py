@@ -1,4 +1,5 @@
 # %%
+import time
 import socket
 import random
 import threading
@@ -71,6 +72,10 @@ NON_TARGET_BUFFER = NonTargetBuffer()
 
 
 class SuspectBuffer(RawBuffer):
+    '''
+    The pairs are sent from upper host
+    '''
+
     def __init__(self):
         super(SuspectBuffer, self).__init__()
         LOGGER.info('SuspectBuffer initialized')
@@ -120,6 +125,10 @@ SUSPECT_BUFFER = SuspectBuffer()
 
 
 class InterBuffer(RawBuffer):
+    '''
+    The pairs are considered to be finished.
+    '''
+
     def __init__(self):
         super(InterBuffer, self).__init__()
         LOGGER.info('InterruptBuffer initialized')
@@ -138,6 +147,27 @@ class InterBuffer(RawBuffer):
         LOGGER.debug('InterruptBuffer pops 1 pairs')
 
         return first
+
+    def _default(self):
+        default_opt = 'DefaultOperation'
+        while len(self.pairs) > 0:
+            pair = self.pairs.pop(0)
+            self.refresh()
+
+            SUSPECT_BUFFER.pop_idx(pair.idx)
+            SUSPECT_BUFFER.refresh()
+
+            LOGGER.debug('Operation: {} to idx: {}'.format(
+                default_opt, pair.idx))
+            time.sleep(0.1)
+        LOGGER.debug('Default operation stops.')
+        pass
+
+    def default(self):
+        t = threading.Thread(target=self._default)
+        t.setDaemon(True)
+        t.start()
+        LOGGER.debug('Default operation starts.')
 
 
 INTER_BUFFER = InterBuffer()

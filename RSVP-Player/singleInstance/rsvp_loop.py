@@ -195,6 +195,11 @@ def check_inter():
     '''
     loop_name = 'RSVP'
 
+    if not TOGGLE_OPTION.options['INT'][2]:
+        # If not allow interrupted
+        INTER_BUFFER.default()
+        return loop_name
+
     if len(INTER_BUFFER.pairs) > 0:
         loop_name = 'INTER'
 
@@ -288,11 +293,14 @@ def rsvp_loop():
 
             if frame_rate_stats['status'].startswith('RSVP'):
 
+                # Something wrong is happening,
+                # we detect that the counting system is totally out of control
                 if frame_rate_stats['count'] > chunk_length + offset:
                     LOGGER.error('RSVP_LOOP is running incorrect since {} > {}'.format(
                         frame_rate_stats['count'], chunk_length + offset))
                     break
 
+                # The chunk is finished
                 if frame_rate_stats['count'] == chunk_length + offset:
                     # The chunk is finished
                     # Start the next chunk
@@ -308,15 +316,15 @@ def rsvp_loop():
 
                     offset += chunk_length
                     pairs, suspect_pair, kk = mk_chunk()
+                    if not frame_rate_stats['status'].startswith('RSVP'):
+                        continue
 
-                print(frame_rate_stats['count'], kk[-1], offset)
+                # Display the suspect picture
+                drawSuspect = False
                 if kk[-1] > -1 and frame_rate_stats['count'] == kk[-1] + offset:
-                    pair = suspect_pair.pop()
+                    drawSuspect = True
 
-                    if True and frame_rate_stats['count'] in [kk[-1] + offset, 3+offset]:
-                        # !!! Append the pair into the INTER_BUFFER
-                        # !!! Only for development
-                        INTER_BUFFER.append(pair)
+                    pair = suspect_pair.pop()
 
                     kk.pop()
 
@@ -324,6 +332,11 @@ def rsvp_loop():
                         'Display suspect picture: {}'.format(pair.idx))
                 else:
                     pair = pairs[frame_rate_stats['count'] - offset]
+
+                # !!! Append the pair into the INTER_BUFFER
+                # !!! Only for development
+                if True and (frame_rate_stats['count'] in [3+offset] or drawSuspect):
+                    INTER_BUFFER.append(pair)
 
                 frame_rate_stats['count'] += 1
 

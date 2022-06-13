@@ -5,9 +5,10 @@ from .constants import *
 # %%
 
 options = dict(
-    OSD=['OSD', -1, True],
-    UNT=['UNT', -1, True],  # Use non target pictures
-    SUM=['SUM', -1, True],
+    OSD=['OSD', -1, True], # Draw on screen display
+    UNT=['UNT', -1, True], # Use non target pictures
+    SUM=['SUM', -1, True], # Draw summary
+    INT=['INT', -1, True], # Allow interrupt
     OPT1=['OPT1', -1, False],
     OPT2=['OPT2', -1, False],
 )
@@ -41,6 +42,7 @@ class ToggleOption(object):
             if options[opt][1].contains(event.pos, (1, 1)):
                 LOGGER.debug('Detect click event on option: {}'.format(opt))
                 options[opt][2] = not options[opt][2]
+                LOGGER.debug('Toggle option: {}: {}'.format(opt, options[opt][2]))
                 return opt
 
         return
@@ -89,9 +91,9 @@ class ToggleOption(object):
             string = options[option][0]
             v1 = options[option][0]
             if options[option][2]:
-                v2 = '| --- OFF |'
-            else:
                 v2 = '| ON  --- |'
+            else:
+                v2 = '| --- OFF |'
             string = '| {:6s} {}'.format(v1, v2)
 
             text = FONT.render(string, antialias, color, background)
