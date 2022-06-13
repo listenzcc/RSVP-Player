@@ -122,8 +122,8 @@ class Controller(object):
         rect = text.get_rect()
         rect.height *= 1.1
         rect.width *= 1.5
-        top = 30
-        left = int(CFG['screen']['width']) - rect.width
+        top = int(CFG['cmdTitle']['top'])
+        left = int(CFG['cmdTitle']['left'])
         rect.center = (left, top)
 
         SCREEN.fill(BLACK, rect)
@@ -134,8 +134,8 @@ class Controller(object):
         background = None
         antialias = True
 
-        top = 30
-        left = int(CFG['screen']['width']) / 10
+        top = int(CFG['cmdBar']['top'])
+        left = int(CFG['cmdBar']['left'])
         _left = 30
 
         for j, cmd in enumerate(controllers):

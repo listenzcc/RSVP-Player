@@ -5,10 +5,10 @@ from .constants import *
 # %%
 
 options = dict(
-    OSD=['OSD', -1, True], # Draw on screen display
-    UNT=['UNT', -1, True], # Use non target pictures
-    SUM=['SUM', -1, True], # Draw summary
-    INT=['INT', -1, True], # Allow interrupt
+    OSD=['OSD', -1, True],  # Draw on screen display
+    UNT=['UNT', -1, True],  # Use non target pictures
+    SUM=['SUM', -1, True],  # Draw summary
+    INT=['INT', -1, True],  # Allow interrupt
     OPT1=['OPT1', -1, False],
     OPT2=['OPT2', -1, False],
 )
@@ -42,7 +42,8 @@ class ToggleOption(object):
             if options[opt][1].contains(event.pos, (1, 1)):
                 LOGGER.debug('Detect click event on option: {}'.format(opt))
                 options[opt][2] = not options[opt][2]
-                LOGGER.debug('Toggle option: {}: {}'.format(opt, options[opt][2]))
+                LOGGER.debug('Toggle option: {}: {}'.format(
+                    opt, options[opt][2]))
                 return opt
 
         return
@@ -78,8 +79,8 @@ class ToggleOption(object):
         background = None
         antialias = True
 
-        left = int(CFG['screen']['width']) - 200
-        top = 80
+        left = int(CFG['toggleRect']['left'])
+        top = int(CFG['toggleRect']['top'])
         _top = 10
 
         for j, option in enumerate(options):
@@ -100,7 +101,7 @@ class ToggleOption(object):
             rect = text.get_rect()
             rect.height *= 1.1
             top += _top + rect.height
-            rect.center = (left, top)
+            rect.center = (left + rect.width / 2, top - rect.height / 2)
 
             SCREEN.fill(BLACK, rect)
             SCREEN.blit(text, rect)

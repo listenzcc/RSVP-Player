@@ -357,3 +357,34 @@ def summary_buffers():
     ]
 
     return output
+
+
+# %%
+
+
+def draw_summary():
+    width = 1
+    color = WHITE
+    background = None
+    antialias = True
+
+    summary = summary_buffers()
+
+    top = int(CFG['summaryRect']['top'])
+    left = int(CFG['summaryRect']['left'])
+    _top = 10
+
+    for string in summary:
+        text = FONT.render(string, antialias, color, background)
+        rect = text.get_rect()
+        # rect.height *= 1.1
+        rect.center = (left + rect.width/2, top - rect.height / 2)
+        top += _top + rect.height
+
+        # SCREEN.fill(BLACK, rect)
+        SCREEN.blit(text, rect)
+        pygame.draw.rect(SCREEN, color, rect, width=width)
+
+        pass
+
+    return

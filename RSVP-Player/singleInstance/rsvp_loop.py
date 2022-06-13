@@ -9,7 +9,7 @@ from .buffer import SUSPECT_BUFFER
 from .buffer import NON_TARGET_BUFFER
 from .buffer import INTER_BUFFER
 
-from .buffer import summary_buffers
+from .buffer import draw_summary
 
 from .logger import LOGGER
 from .loop_manager import LOOP_MANAGER
@@ -76,36 +76,6 @@ controllers = dict(
 
 controller = Controller(controllers, 'RSVP')
 
-
-# %%
-
-
-def draw_summary():
-    width = 1
-    color = WHITE
-    background = None
-    antialias = True
-
-    summary = summary_buffers()
-
-    top = int(CFG['screen']['height']) / 2
-    _top = 10
-    w = int(CFG['screen']['width'])
-
-    for string in summary:
-        text = FONT.render(string, antialias, color, background)
-        rect = text.get_rect()
-        rect.height *= 1.1
-        rect.center = (w - rect.width/2, top)
-        top += _top + rect.height
-
-        # SCREEN.fill(BLACK, rect)
-        SCREEN.blit(text, rect)
-        pygame.draw.rect(SCREEN, color, rect, width=width)
-
-        pass
-
-    return
 
 # %%
 
