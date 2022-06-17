@@ -85,7 +85,7 @@ class Controller(object):
 
         return
 
-    def draw(self):
+    def draw(self, draw_patches=False):
         '''
         Draw controllers into the pygame window
 
@@ -111,6 +111,45 @@ class Controller(object):
 
         controllers = self.controllers
         title = self.title
+
+        if draw_patches:
+            # Draw rect stroke of picture patches
+            width = 1
+            background = None
+            antialias = True
+
+            # Left patch
+            color = GREEN
+            top = int(CFG['centerPatch']['top'])
+            left = int(CFG['centerPatch']['left'])
+            rect = (left, top, size[0], size[1])
+            pygame.draw.rect(SCREEN, REAL_BLACK, rect)
+            pygame.draw.rect(SCREEN, color, rect, width=width)
+
+            string = 'Patch-1'
+            text = FONT.render(string, antialias, color, background)
+            rect = text.get_rect()
+            rect.height *= 1.1
+            rect.center = (left + rect.width/2 + FONT_SIZE,
+                        top+rect.height/2 + FONT_SIZE)
+            SCREEN.blit(text, rect)
+
+            # Right patch
+            if CFG['RSVP']['mode'] == 'dual':
+                color = CYAN
+                top = int(CFG['subPatch']['top'])
+                left = int(CFG['subPatch']['left'])
+                rect = (left, top, size[0], size[1])
+                pygame.draw.rect(SCREEN, REAL_BLACK, rect)
+                pygame.draw.rect(SCREEN, color, rect, width=width)
+
+                string = 'Patch-2'
+                text = FONT.render(string, antialias, color, background)
+                rect = text.get_rect()
+                rect.height *= 1.1
+                rect.center = (left + rect.width/2 + FONT_SIZE,
+                            top+rect.height/2 + FONT_SIZE)
+                SCREEN.blit(text, rect)
 
         # Draw title
         width = 1

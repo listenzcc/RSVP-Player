@@ -20,9 +20,12 @@ CAPTION = CFG['UI']['caption']
 TIMEOUT = int(CFG['UI']['timeout'])
 
 YELLOW = (200, 200, 0)
+GREEN = (0, 200, 100)
+CYAN = (0, 200, 255)
 RED = (200, 0, 0)
 WHITE = (200, 200, 200)
 BLACK = (0, 50, 10)
+REAL_BLACK = (0, 0, 0)
 GRAY = (100, 100, 100)
 
 # %%
@@ -32,9 +35,11 @@ pygame.init()
 # pygame.font.Font('simhei.ttf', 50)
 # pygame.font.Font('C:/Windows/Fonts/simhei.ttf', 50)
 
+FONT_SIZE = int(CFG['UI']['fontSize'])
+
 FONT = pygame.font.Font(
     CFG['UI']['fontName'],
-    int(CFG['UI']['fontSize'])
+    FONT_SIZE
 )
 
 

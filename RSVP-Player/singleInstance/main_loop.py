@@ -25,7 +25,7 @@ def main_loop():
     while True:
         SCREEN.fill(BLACK)
         TOGGLE_OPTION.draw()
-        controller.draw()
+        controller.draw(draw_patches=True)
 
         if not LOOP_MANAGER.get() == 'MAIN':
             LOGGER.info('Escape from main loop')
