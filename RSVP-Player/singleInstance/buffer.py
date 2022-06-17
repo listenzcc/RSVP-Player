@@ -12,6 +12,58 @@ from .logger import LOGGER
 from .constants import *
 
 # %%
+
+
+class BufferHelper(object):
+    '''
+    Meaning of the methods in the Buffer:
+
+    --------------------------------------------------------------------------------
+    Public methods (base-class):
+
+    - insert(new Pair): Insert the new pair into the Buffer,
+
+        Before: [0, 1, 2]
+        After: [new, 0, 1, 2]
+
+    - append(new Pair): Append the new pair into the Buffer,
+
+        Before: [0, 1, 2]
+        After: [0, 1, 2, new]
+
+    - refresh(): Refresh the valid, frame_count and surface_count,
+
+        - valid: The list of the pairs have both frame and surface,
+        - frame_count: How many pairs have their frame (every pairs have a frame),
+        - surface_count: How many pairs have their surface (not every pairs have a surface, it is computed from the frame).
+
+    --------------------------------------------------------------------------------
+    Public methods (sub-class):
+
+    - get_random(int k): Randomly select k valid pairs,
+        in random order,
+        no repeat by default,
+        repeat if the size is less than k.
+
+    - get_all(): Select all the valid pairs,
+        in the origin order.
+
+    - pop(): Pop the first element from the valid pairs list.
+
+    - pop_idx(int idx): Pop the pairs form the valid pairs by the idx,
+        the pairs with the same idx will be removed either.
+
+    --------------------------------------------------------------------------------
+    Private methods (sub-class):
+
+    - _remove_idx(int idx): Remove the pairs of the idx from the pairs list.
+
+    '''
+
+    def __init__(self):
+        pass
+
+# %%
 # Raw buffer
 
 
@@ -142,11 +194,19 @@ class InterBuffer(RawBuffer):
 
         first = self.pairs.pop(0)
 
-        self.refresh()
+        self._remove_idx(first.idx)
+        # self.refresh()
 
         LOGGER.debug('InterruptBuffer pops 1 pairs')
 
         return first
+
+    def _remove_idx(self, idx):
+        n = len(self.pairs)
+        self.pairs = [e for e in self.pairs if not e.idx == idx]
+        self.refresh()
+        LOGGER.debug(
+            'Pop idx: {}, size changes: {} -> {}'.format(idx, n, self.frame_count))
 
     def _default(self):
         default_opt = 'DefaultOperation'
