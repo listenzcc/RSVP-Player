@@ -96,10 +96,11 @@ class Controller(object):
             CAPTURE=['__CAPTURE__', -1],
         )
 
-        They are drawn in the top of the window from left to right.
+        They are drawn in the north west corner of the window from left to right.
+        Moreover, the title will be drawn in the north east corner of the window.
 
         -------------------------
-        | c1  c2  c3 ...        |
+        | c1  c2  c3 ...  Title |
         |                       |
         |                       |
         |                       |
@@ -107,6 +108,7 @@ class Controller(object):
         -------------------------
 
         '''
+
         controllers = self.controllers
         title = self.title
 

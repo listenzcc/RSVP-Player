@@ -423,6 +423,24 @@ def summary_buffers():
 
 
 def draw_summary():
+    '''
+    Draw buffer summary into the pygame window
+
+    They are drawn in the south east corner of the window from left to right.
+
+    -------------------------
+    |                       |
+    |                       |
+    |                       |
+    |                       |
+    |                   sum |
+    |                   sum |
+    |                   sum |
+    |                       |
+    -------------------------
+
+    '''
+
     width = 1
     color = WHITE
     background = None

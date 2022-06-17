@@ -61,13 +61,15 @@ class ToggleOption(object):
             OPT2=['OPT2', -1, False],
         )
 
-        They are drawn in the top of the window from left to right.
+        They are drawn in the east to north side of the window from left to right.
 
         -------------------------
         |                       |
         |                   opt |
         |                   opt |
         |                   opt |
+        |                       |
+        |                       |
         |                       |
         -------------------------
 
