@@ -59,6 +59,7 @@ def draw_frame_rate(error=''):
 
     if error is not '':
         record = error
+        color = RED
 
     string = '| {} | Name: {} | Count: {} | Pass: {:0.3f} | Rate: {:0.2f} |'.format(
         record, name, count, t, rate)

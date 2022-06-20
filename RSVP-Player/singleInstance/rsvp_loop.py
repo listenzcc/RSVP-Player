@@ -100,7 +100,7 @@ def mk_chunk():
         # Use non target pictures
         pairs = NON_TARGET_BUFFER.get_random(k=chunk_length)
         if pairs is None:
-            frame_rate_stats['status'] = 'ERROR - no capture'
+            frame_rate_stats['status'] = 'ERROR - no non-target'
             LOGGER.warning('Can not find captured pictures for rsvp display')
             return None, None
 
