@@ -44,7 +44,9 @@ def main_loop():
             if cmd == 'RSVP':
                 LOOP_MANAGER.set('RSVP')
 
-        draw_summary()
+        if TOGGLE_OPTION.options['SUM'][2]:
+            draw_summary()
+
         pygame.display.flip()
 
 # %%

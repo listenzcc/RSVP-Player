@@ -1,5 +1,7 @@
 # %%
 import singleInstance.debug_suspect_buffer
+import singleInstance.remote_suspect_buffer
+
 from singleInstance.logger import LOGGER
 from singleInstance.loop_manager import LOOP_MANAGER
 
