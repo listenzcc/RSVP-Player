@@ -12,8 +12,16 @@ from pathlib import Path
 
 # path = Path(os.environ.get('HOME'), 'videos', 'video.mp4')
 
+if os.environ.get('HOME', None) is None:
+    LOGGER.warning('HOME environment variable is not set, try to set it with HOMEPATH')
+    os.environ['HOME'] = os.environ.get('HOMEPATH', None)
+    if os.environ.get('HOME') is None:
+        LOGGER.error('HOME environment variable is not set, please set it manually')
+
+LOGGER.info('HOME environment variable is {}'.format(os.environ.get('HOME')))
+
 known_path = dict(
-    video=Path(os.environ.get('HOME'), 'videos', 'video.mp4'),
+    video=Path(os.environ.get('HOME'), 'videos', 'video.avi'),
     game=Path(os.environ.get('HOME'), 'videos', 'game.mp4'),
     ekaterina=Path(os.environ.get('HOME'), 'videos', 'ekaterina.mp4'),
     homeland=Path(os.environ.get('HOME'), 'videos', 'homeland.mp4'),
