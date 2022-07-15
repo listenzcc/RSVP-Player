@@ -2,11 +2,18 @@
 import sys
 import pygame
 import configparser
+
 from pathlib import Path
+
+from .parallel.parallel import Parallel
 
 # %%
 CFG = configparser.ConfigParser()
 CFG.read(Path(__file__).parent.parent.joinpath('asset/config.ini'))
+
+# %%
+PARALLEL = Parallel()
+PARALLEL.reset(CFG['Parallel']['address'])
 
 # %%
 RATE = int(CFG['RSVP']['rate'])

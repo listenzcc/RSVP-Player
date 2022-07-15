@@ -20,13 +20,10 @@ if os.environ.get('HOME', None) is None:
 
 LOGGER.info('HOME environment variable is {}'.format(os.environ.get('HOME')))
 
-known_path = dict(
-    video=Path(os.environ.get('HOME'), 'videos', 'video.avi'),
-    game=Path(os.environ.get('HOME'), 'videos', 'game.mp4'),
-    ekaterina=Path(os.environ.get('HOME'), 'videos', 'ekaterina.mp4'),
-    homeland=Path(os.environ.get('HOME'), 'videos', 'homeland.mp4'),
-    invalid=Path(os.environ.get('HOME'), 'videos', 'not-exist.mp4'),
-)
+known_path = dict()
+for e in CFG['videoFlow']:
+    known_path[e] = CFG['videoFlow'][e]
+LOGGER.info('Found video flows: {}'.format(known_path))
 
 # %%
 

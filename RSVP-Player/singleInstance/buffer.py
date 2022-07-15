@@ -64,6 +64,31 @@ class BufferHelper(object):
         pass
 
 # %%
+# Black buffer
+class BlackBuffer(object):
+    def __init__(self):
+        pair = Pair(np.zeros((100, 100, 3), dtype=np.uint8))
+        pair.compute()
+        self.pairs = [pair]
+
+BLACK_BUFFER = BlackBuffer()
+
+# %%
+# Chunk counter
+class ChunkCounter(object):
+    def __init__(self):
+        self.value = 0
+        self.limit = 8 
+
+    def reset(self):
+        self.value = 0
+
+    def add(self):
+        self.value += 1
+
+CHUNK_COUNTER = ChunkCounter()
+
+# %%
 # Raw buffer
 
 
@@ -413,7 +438,9 @@ def summary_buffers():
         # TCP connection
         '| TCPConnection   | {:4d} | {:4d} |'.format(
             len(SERVER.clients), 0
-        )
+        ),
+        # Chunk Counter
+        '| ChunkCounter    | {:4d} | {:4d} |'.format(CHUNK_COUNTER.value, CHUNK_COUNTER.limit)
     ]
 
     return output

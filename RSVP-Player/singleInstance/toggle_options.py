@@ -9,7 +9,7 @@ options = dict(
     UNT=['UNT', -1, True],  # Use non target pictures
     SUM=['SUM', -1, True],  # Draw summary
     INT=['INT', -1, True],  # Allow interrupt
-    OPT1=['OPT1', -1, False],
+    TRA=['TRA', -1, False], # Train or not
     OPT2=['OPT2', -1, False],
 )
 

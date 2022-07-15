@@ -6,6 +6,7 @@ from .toolbox import Controller
 from .toggle_options import TOGGLE_OPTION
 
 from .buffer import SUSPECT_BUFFER
+from .buffer import CHUNK_COUNTER
 from .buffer import NON_TARGET_BUFFER
 from .buffer import INTER_BUFFER
 
@@ -37,7 +38,7 @@ def draw_frame_rate():
     width = 1
 
     if frame_rate_stats['status'].startswith('RSVP'):
-        color = WHITE
+        color = BLACK
     else:
         color = RED
 
@@ -79,16 +80,28 @@ controller = Controller(controllers, 'RSVP')
 
 # %%
 
+'''
+kk is the location of the suspect-target picture
+
+The chunk lasts 5.0 seconds.
+The first 0.5 seconds contain no suspect-target pictures
+The suspect-targets are only allowed to be displayed in between 0.5 to 2.0 seconds
+'''
 
 if CFG['RSVP']['rate'] == '10':
-    chunk_length = 40
-    kk_min = 10
-    kk_max = 30
+    rsvp_fs = 10
+    chunk_length = 50 + 2
+    kk_min = 5
+    kk_max = 20
 
 if CFG['RSVP']['rate'] == '5':
-    chunk_length = 20
-    kk_min = 5
-    kk_max = 15
+    rsvp_fs = 5
+    chunk_length = 25 + 2
+    kk_min = 3
+    kk_max = 10
+
+CHUNK_COUNTER.reset()
+# %%
 
 
 def mk_chunk():
@@ -106,30 +119,24 @@ def mk_chunk():
 
         frame_rate_stats['status'] = 'RSVP(UNT)'
         suspect_pair = SUSPECT_BUFFER.pop()
+        # black_pair = BLACK_BUFFER.pairs[0]
 
         if suspect_pair is not None:
-            LOGGER.debug(
-                'Select idx:{} for suspect pair'.format(suspect_pair[0].idx))
             kk = random.randint(kk_min, kk_max)
             pairs[kk] = suspect_pair[0]
+            LOGGER.debug(
+                'Select idx:{}, {} for suspect pair'.format(suspect_pair[0].idx, kk))
+
+        # for j in range(kk_max+1, chunk_length):
+        #     pairs[j] = black_pair[0]
+        #     LOGGER.debug('Replace the {}-th pair with black picture'.format(j))
 
     # Dual
     if TOGGLE_OPTION.options['UNT'][2] and CFG['RSVP']['mode'] == 'dual':
         # Use non target pictures
-        pairs2 = NON_TARGET_BUFFER.get_random(k=chunk_length)
-        if pairs2 is None:
-            frame_rate_stats['status'] = 'ERROR - no capture - 2'
-            LOGGER.warning('Can not find captured pictures for rsvp display 2')
-            return None, None
-
-        frame_rate_stats['status'] = 'RSVP(UNT)'
-        suspect_pair = SUSPECT_BUFFER.pop()
-
-        if suspect_pair is not None:
-            LOGGER.debug(
-                'Select idx:{} for suspect pair 2'.format(suspect_pair[0].idx))
-            kk = random.randint(kk_min, kk_max)
-            pairs2[kk] = suspect_pair[0]
+        pairs2 = NON_TARGET_BUFFER.get_random(k=10)
+        for j in range(chunk_length-10):
+            pairs2.append(pairs[j])
 
     # Single
     if not TOGGLE_OPTION.options['UNT'][2]:
@@ -372,19 +379,19 @@ def rsvp_loop():
                     if not frame_rate_stats['status'].startswith('RSVP'):
                         continue
 
-                # Display the suspect picture
-                # drawSuspect = False
-                # if kk[-1] > -1 and frame_rate_stats['count'] == kk[-1] + offset:
-                #     drawSuspect = True
+                if frame_rate_stats['count'] == offset:
+                    # Chunk starts
+                    PARALLEL.send(16)
+                    LOGGER.debug('Chunk starts: send 16 tag')
 
-                #     pair = suspect_pair.pop()
-
-                #     kk.pop()
-
-                #     LOGGER.debug(
-                #         'Display suspect picture: {}'.format(pair.idx))
-                # else:
-                #     pair = pairs[frame_rate_stats['count'] - offset]
+                if frame_rate_stats['count'] == chunk_length + offset - 1:
+                    # Chunk stops
+                    PARALLEL.send(20)
+                    CHUNK_COUNTER.add()
+                    LOGGER.debug('Chunk stops: send 20 tag')
+                    if CHUNK_COUNTER.value % CHUNK_COUNTER.limit == 0:
+                        PARALLEL.send(25)
+                        LOGGER.debug('Block stops: send 25 tag')
 
                 pair = pairs[frame_rate_stats['count'] - offset]
                 if pairs2 is not None:
@@ -393,8 +400,17 @@ def rsvp_loop():
                     pair2 = None
 
                 if pair.idx > 0:
+                    # PARALLEL.send(pair.idx)
+                    PARALLEL.send(1)
                     LOGGER.debug(
                         'Display suspect picture (1): {}'.format(pair.idx))
+                else:
+                    if frame_rate_stats['count'] == offset:
+                        LOGGER.debug(
+                            'Ignore the 2 tag since the 16 is on the way')
+                    else:
+                        PARALLEL.send(2, verbose=False)
+                    pass
 
                 if pair2 is not None:
                     if pair2.idx > 0:
@@ -403,12 +419,11 @@ def rsvp_loop():
 
                 # !!! Append the pair into the INTER_BUFFER
                 # !!! Only for development
-                if frame_rate_stats['count'] - offset == 3 or pair.idx > 0:
-                    INTER_BUFFER.append(pair)
-
-                if pair2 is not None:
-                    if pair2.idx > 0:
-                        INTER_BUFFER.append(pair2)
+                # if frame_rate_stats['count'] - offset == 3 or pair.idx > 0:
+                #     INTER_BUFFER.append(pair)
+                # if pair2 is not None:
+                #     if pair2.idx > 0:
+                #         INTER_BUFFER.append(pair2)
 
                 frame_rate_stats['count'] += 1
 
